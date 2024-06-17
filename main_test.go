@@ -46,5 +46,5 @@ func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
 	require.Equal(t, http.StatusOK, responseRecorder.Code, "The cod is not 200 when the count is more than total")
 	body = responseRecorder.Body.String()
 	cafes := strings.Split(body, ",")
-	assert.Equal(t, totalCount, len(cafes), "Wrong body content when the count is more than total")
+	assert.Len(t, cafes, totalCount, "Wrong body content when the count is more than total")
 }
