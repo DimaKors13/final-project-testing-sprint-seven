@@ -12,39 +12,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
-	totalCount := 4
-	params := url.Values{}
-	params.Set("city", "moscow")
-	params.Set("count", strconv.Itoa(totalCount))
+var totalCount = 4
+var handler = http.HandlerFunc(mainHandle)
 
-	req := httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
+// Запрос корректный
+func TestMainHandlerCorrectRequest(t *testing.T) {
 
-	handler := http.HandlerFunc(mainHandle)
-
-	//Запрос корректный
+	params := requestParams("moscow", totalCount)
 	responseRecorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
 	handler.ServeHTTP(responseRecorder, req)
 	require.Equal(t, http.StatusOK, responseRecorder.Code, "The cod is not 200")
 	assert.NotEmpty(t, responseRecorder.Body, "Responded body is empty")
 
-	//Город, который передаётся в параметре city, не поддерживается
-	responseRecorder = httptest.NewRecorder()
-	params.Set("city", "rostov-on-don")
-	req = httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
+}
+
+// Город, который передаётся в параметре city, не поддерживается
+func TestMainHandlerWhenWrongCity(t *testing.T) {
+
+	params := requestParams("wrong-city", totalCount)
+	responseRecorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
 	handler.ServeHTTP(responseRecorder, req)
 	require.Equal(t, http.StatusBadRequest, responseRecorder.Code, "The cod is not 400")
 	body := responseRecorder.Body.String()
 	assert.Equal(t, body, "wrong city value", "Wrong body content when the city is incorrect")
 
-	//В параметре count указано больше, чем есть всего
-	responseRecorder = httptest.NewRecorder()
-	params.Set("city", "moscow")
-	params.Set("count", strconv.Itoa(totalCount+1))
-	req = httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
+}
+
+// В параметре count указано больше, чем есть всего
+func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
+
+	params := requestParams("moscow", totalCount+1)
+	responseRecorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/cafe?"+params.Encode(), nil)
 	handler.ServeHTTP(responseRecorder, req)
 	require.Equal(t, http.StatusOK, responseRecorder.Code, "The cod is not 200 when the count is more than total")
-	body = responseRecorder.Body.String()
+	body := responseRecorder.Body.String()
 	cafes := strings.Split(body, ",")
 	assert.Len(t, cafes, totalCount, "Wrong body content when the count is more than total")
+}
+
+func requestParams(city string, count int) url.Values {
+	result := url.Values{}
+	result.Set("city", city)
+	result.Set("count", strconv.Itoa(count))
+	return result
 }
